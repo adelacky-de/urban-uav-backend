@@ -6,7 +6,7 @@ Backend for serving **safe corridors** (GeoJSON) from PostGIS via a minimal Fast
 
 1. Ensure [Docker](https://docs.docker.com/get-docker/) and [Docker Compose](https://docs.docker.com/compose/install/) are installed.
 
-2.open docker desktop
+2. open docker desktop
 
 3. In this directory (`postgisWithFastAPI`), run:
 
