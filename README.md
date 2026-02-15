@@ -10,12 +10,12 @@ Backend for serving **2D safe corridors** (GeoJSON), **3D merged network** (GeoJ
 
 3. In this directory (`postgisWithFastAPI`), run:
 
-   **New users:**
+   **First time:**
    ```bash
    docker compose up -d --build
    ```
 
-   **If you already ran the old version** (single corridor layer), replace it with the new setup:
+   **If you already ran the old version on your pc** (single corridor layer), replace it with the new setup:
    ```bash
    docker compose down -v
    docker compose up -d --build
@@ -24,7 +24,7 @@ Backend for serving **2D safe corridors** (GeoJSON), **3D merged network** (GeoJ
 
 4. Wait for PostGIS to be ready and FastAPI to run the first-time import.
 
-5. Check the four access points:
+5. Check the endpoints:
    - `curl http://localhost:8000/health`
    - `curl http://localhost:8000/2d-corridors`
    - `curl http://localhost:8000/3d-network`
