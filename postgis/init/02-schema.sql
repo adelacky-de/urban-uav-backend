@@ -95,3 +95,25 @@ CREATE TABLE IF NOT EXISTS network_3d_4326 (
 );
 
 CREATE INDEX IF NOT EXISTS idx_network_3d_4326_geom ON network_3d_4326 USING GIST (geom);
+
+-- hdb_footprints: building footprints, original CRS EPSG:3414
+CREATE TABLE IF NOT EXISTS hdb_footprints (
+  id SERIAL PRIMARY KEY,
+  feat_id text,
+  height double precision,
+  levels text,
+  geom geometry(MultiPolygon, 3414)
+);
+
+CREATE INDEX IF NOT EXISTS idx_hdb_footprints_geom ON hdb_footprints USING GIST (geom);
+
+-- hdb_footprints_4326: transformed to EPSG:4326 for API/frontend
+CREATE TABLE IF NOT EXISTS hdb_footprints_4326 (
+  id SERIAL PRIMARY KEY,
+  feat_id text,
+  height double precision,
+  levels text,
+  geom geometry(MultiPolygon, 4326)
+);
+
+CREATE INDEX IF NOT EXISTS idx_hdb_footprints_4326_geom ON hdb_footprints_4326 USING GIST (geom);

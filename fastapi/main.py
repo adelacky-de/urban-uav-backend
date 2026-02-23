@@ -12,6 +12,7 @@ from psycopg2.extras import RealDictCursor
 DATABASE_URL = os.environ.get("DATABASE_URL", "postgresql://uavuser:uavpass@localhost:5432/uavdb")
 GEOJSON_2D_PATH = os.environ.get("GEOJSON_2D_PATH", "/data/2D_safe_corridors_prioritized.geojson")
 GEOJSON_3D_PATH = os.environ.get("GEOJSON_3D_PATH", "/data/3D_merged_network.geojson")
+GEOJSON_HDB_PATH = os.environ.get("GEOJSON_HDB_PATH", "/data/hdb_footprints.geojson")
 TILES_DIR = os.environ.get("TILES_DIR", "/data/tiles")
 
 
@@ -19,7 +20,7 @@ TILES_DIR = os.environ.get("TILES_DIR", "/data/tiles")
 async def lifespan(app: FastAPI):
     from import_data import run_import
     try:
-        run_import(DATABASE_URL, GEOJSON_2D_PATH, GEOJSON_3D_PATH)
+        run_import(DATABASE_URL, GEOJSON_2D_PATH, GEOJSON_3D_PATH, GEOJSON_HDB_PATH)
     except Exception as e:
         print(f"Startup import warning: {e}")
     yield
@@ -114,6 +115,35 @@ def corridors_2d():
 @app.get("/3d-network")
 def network_3d():
     return JSONResponse(content=get_3d_network_geojson())
+
+
+def get_hdb_footprints_geojson():
+    with psycopg2.connect(DATABASE_URL) as conn:
+        with conn.cursor(cursor_factory=RealDictCursor) as cur:
+            cur.execute("""
+                SELECT id, feat_id, height, levels,
+                    ST_AsGeoJSON(geom)::json AS geom
+                FROM hdb_footprints_4326
+                ORDER BY id
+            """)
+            rows = cur.fetchall()
+    features = []
+    for r in rows:
+        geom = r.pop("geom", None)
+        r.pop("id", None)
+        if geom is None:
+            continue
+        features.append({
+            "type": "Feature",
+            "properties": dict(r),
+            "geometry": geom,
+        })
+    return {"type": "FeatureCollection", "features": features}
+
+
+@app.get("/hdb-footprints")
+def hdb_footprints():
+    return JSONResponse(content=get_hdb_footprints_geojson())
 
 
 # Static 3D Tiles: Cesium uses base URL e.g. http://localhost:8000/3dtiles/tileset.json

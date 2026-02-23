@@ -124,10 +124,48 @@ def load_and_import_3d(conn, geojson_path: str) -> None:
     conn.commit()
 
 
-def run_import(database_url: str, geojson_2d_path: str, geojson_3d_path: str) -> None:
+def run_import(database_url: str, geojson_2d_path: str, geojson_3d_path: str, geojson_hdb_path: str = "") -> None:
     wait_db(database_url)
     with psycopg2.connect(database_url) as conn:
         if not has_data(conn, "corridors_2d"):
             load_and_import_2d(conn, geojson_2d_path)
         if not has_data(conn, "network_3d"):
             load_and_import_3d(conn, geojson_3d_path)
+        if geojson_hdb_path and not has_data(conn, "hdb_footprints"):
+            load_and_import_hdb(conn, geojson_hdb_path)
+
+
+def load_and_import_hdb(conn, geojson_path: str) -> None:
+    path = Path(geojson_path)
+    if not path.is_file():
+        raise FileNotFoundError(f"HDB GeoJSON not found: {geojson_path}")
+    with path.open(encoding="utf-8") as f:
+        data = json.load(f)
+    features = data.get("features") or []
+    if not features:
+        return
+
+    insert_sql = (
+        "INSERT INTO hdb_footprints (feat_id, height, levels, geom) VALUES "
+        "(%s, %s, %s, ST_SetSRID(ST_Multi(ST_GeomFromGeoJSON(%s)), 3414))"
+    )
+
+    with conn.cursor() as cur:
+        for feat in features:
+            props = feat.get("properties") or {}
+            geom_str = json.dumps(feat.get("geometry"))
+            cur.execute(insert_sql, [
+                str(props.get("id", "")),
+                props.get("height"),
+                str(props.get("osm_building:levels", "")),
+                geom_str,
+            ])
+    conn.commit()
+
+    with conn.cursor() as cur:
+        cur.execute("""
+            INSERT INTO hdb_footprints_4326 (feat_id, height, levels, geom)
+            SELECT feat_id, height, levels, ST_Transform(geom, 4326)
+            FROM hdb_footprints
+        """)
+    conn.commit()
