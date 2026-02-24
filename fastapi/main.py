@@ -29,11 +29,14 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Corridors API", lifespan=lifespan)
 
-# CORS for local frontend dev
+# CORS for local frontend dev and Vercel production
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "http://localhost:5173"
+        "http://localhost:5173",
+        "https://urbanuav2.vercel.app",
+        "https://urbanuav2-git-main-adelackys-projects.vercel.app",
+        "https://urban-uav-corridors.vercel.app"
     ],
     allow_credentials=False,
     allow_methods=["*"],
@@ -53,10 +56,10 @@ def health():
     return {"status": "ok", "database": db}
 
 
-def get_2d_corridors_geojson():
+def get_2d_corridors_geojson(min_lon: float = None, min_lat: float = None, max_lon: float = None, max_lat: float = None):
     with psycopg2.connect(DATABASE_URL) as conn:
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
-            cur.execute("""
+            query = """
                 SELECT id, "OBJECTID", "PLN_AREA_N", "PLN_AREA_C", "CA_IND", "REGION_N", "REGION_C",
                     "INC_CRC", "FMEL_UPD_D", "SHAPE.AREA", "SHAPE.LEN", "Total_Population",
                     "Total_Males", "Total_Females", "LabourForce_Total_Total", "LabourForce_Total_Males",
@@ -66,8 +69,13 @@ def get_2d_corridors_geojson():
                     "OutsidetheLabourForce_Females", "Area_km2", "Pop_Density", "priorityID",
                     ST_AsGeoJSON(geom)::json AS geom
                 FROM corridors_2d_4326
-                ORDER BY id
-            """)
+            """
+            params = []
+            if min_lon is not None and min_lat is not None and max_lon is not None and max_lat is not None:
+                query += " WHERE ST_Intersects(geom, ST_MakeEnvelope(%s, %s, %s, %s, 4326))"
+                params.extend([min_lon, min_lat, max_lon, max_lat])
+            query += " ORDER BY id"
+            cur.execute(query, tuple(params))
             rows = cur.fetchall()
     features = []
     for r in rows:
@@ -83,15 +91,20 @@ def get_2d_corridors_geojson():
     return {"type": "FeatureCollection", "features": features}
 
 
-def get_3d_network_geojson():
+def get_3d_network_geojson(min_lon: float = None, min_lat: float = None, max_lon: float = None, max_lat: float = None):
     with psycopg2.connect(DATABASE_URL) as conn:
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
-            cur.execute("""
+            query = """
                 SELECT id, min_altitude, corridor_type, max_altitude, volume_m3, "priorityID",
                     ST_AsGeoJSON(geom)::json AS geom
                 FROM network_3d_4326
-                ORDER BY id
-            """)
+            """
+            params = []
+            if min_lon is not None and min_lat is not None and max_lon is not None and max_lat is not None:
+                query += " WHERE ST_Intersects(geom, ST_MakeEnvelope(%s, %s, %s, %s, 4326))"
+                params.extend([min_lon, min_lat, max_lon, max_lat])
+            query += " ORDER BY id"
+            cur.execute(query, tuple(params))
             rows = cur.fetchall()
     features = []
     for r in rows:
@@ -108,24 +121,29 @@ def get_3d_network_geojson():
 
 
 @app.get("/2d-corridors")
-def corridors_2d():
-    return JSONResponse(content=get_2d_corridors_geojson())
+def corridors_2d(min_lon: float = None, min_lat: float = None, max_lon: float = None, max_lat: float = None):
+    return JSONResponse(content=get_2d_corridors_geojson(min_lon, min_lat, max_lon, max_lat))
 
 
 @app.get("/3d-network")
-def network_3d():
-    return JSONResponse(content=get_3d_network_geojson())
+def network_3d(min_lon: float = None, min_lat: float = None, max_lon: float = None, max_lat: float = None):
+    return JSONResponse(content=get_3d_network_geojson(min_lon, min_lat, max_lon, max_lat))
 
 
-def get_hdb_footprints_geojson():
+def get_hdb_footprints_geojson(min_lon: float = None, min_lat: float = None, max_lon: float = None, max_lat: float = None):
     with psycopg2.connect(DATABASE_URL) as conn:
         with conn.cursor(cursor_factory=RealDictCursor) as cur:
-            cur.execute("""
+            query = """
                 SELECT id, feat_id, height, levels,
                     ST_AsGeoJSON(geom)::json AS geom
                 FROM hdb_footprints_4326
-                ORDER BY id
-            """)
+            """
+            params = []
+            if min_lon is not None and min_lat is not None and max_lon is not None and max_lat is not None:
+                query += " WHERE ST_Intersects(geom, ST_MakeEnvelope(%s, %s, %s, %s, 4326))"
+                params.extend([min_lon, min_lat, max_lon, max_lat])
+            query += " ORDER BY id"
+            cur.execute(query, tuple(params))
             rows = cur.fetchall()
     features = []
     for r in rows:
@@ -142,8 +160,8 @@ def get_hdb_footprints_geojson():
 
 
 @app.get("/hdb-footprints")
-def hdb_footprints():
-    return JSONResponse(content=get_hdb_footprints_geojson())
+def hdb_footprints(min_lon: float = None, min_lat: float = None, max_lon: float = None, max_lat: float = None):
+    return JSONResponse(content=get_hdb_footprints_geojson(min_lon, min_lat, max_lon, max_lat))
 
 
 # Static 3D Tiles: Cesium uses base URL e.g. http://localhost:8000/3dtiles/tileset.json
