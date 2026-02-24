@@ -29,15 +29,10 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Corridors API", lifespan=lifespan)
 
-# CORS for local frontend dev and Vercel production
+# CORS for local frontend dev and dynamic Vercel production preview URLs
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "https://urbanuav2.vercel.app",
-        "https://urbanuav2-git-main-adelackys-projects.vercel.app",
-        "https://urban-uav-corridors.vercel.app"
-    ],
+    allow_origins=["*"], # Allow all origins so Vercel dynamic preview URLs don't get blocked
     allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
