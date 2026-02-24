@@ -56,6 +56,18 @@ app.add_middleware(
 )
 
 
+@app.get("/")
+def read_root():
+    return {
+        "message": "Urban UAV Corridors API is running!",
+        "endpoints": [
+            "/health",
+            "/2d-corridors",
+            "/3d-network",
+            "/hdb-footprints"
+        ]
+    }
+
 @app.get("/health")
 def health():
     return {"status": "ok", "mode": "static_file_serving"}
