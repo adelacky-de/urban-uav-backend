@@ -8,10 +8,10 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 
 
-GEOJSON_2D_PATH = os.environ.get("GEOJSON_2D_PATH", "/data/2D_safe_corridors_prioritized.geojson")
-GEOJSON_3D_PATH = os.environ.get("GEOJSON_3D_PATH", "/data/3D_merged_network.geojson")
-GEOJSON_HDB_PATH = os.environ.get("GEOJSON_HDB_PATH", "/data/hdb_footprints.geojson")
-TILES_DIR = os.environ.get("TILES_DIR", "/data/tiles")
+GEOJSON_2D_PATH = os.environ.get("GEOJSON_2D_PATH", "2D_safe_corridors_prioritized.geojson")
+GEOJSON_3D_PATH = os.environ.get("GEOJSON_3D_PATH", "3D_merged_network.geojson")
+GEOJSON_HDB_PATH = os.environ.get("GEOJSON_HDB_PATH", "hdb_footprints.geojson")
+TILES_DIR = os.environ.get("TILES_DIR", "tiles")
 
 
 # In-memory cache for the data to avoid reading from disk on every request
